@@ -1,0 +1,36 @@
+{
+  "name": "defi-scars",
+  "version": "2.0.0",
+  "description": "DeFi Scars — A map of DeFi mistakes on Solana. Pin your losses, share your lessons, learn from the world.",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "initialize": "node scripts/initialize.js",
+    "dist": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.defiscars.app",
+    "productName": "DeFi Scars",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "icon": "build/icon.icns",
+      "target": ["dmg"]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": ["nsis"]
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

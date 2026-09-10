@@ -1,0 +1,2539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeFi Scars</title>
+    <meta name="description" content="A map of DeFi mistakes. Pin your losses, share your lessons, learn from the world.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Libraries (UMD / CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.4/dist/gsap.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bs58@5.0.0/dist/index.umd.min.js"></script>
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <!-- Labels Container (for 3D-projected marker tooltips) -->
+        <div id="labels-container"></div>
+
+        <!-- Header -->
+        <header id="app-header">
+            <div>
+                <h1 class="brand-title">DeFi Scars</h1>
+                <p class="brand-subtitle">A map of DeFi mistakes</p>
+            </div>
+            <div class="header-actions">
+                <div id="loading-indicator" class="loading-pill hidden">
+                    <div class="spinner"></div>
+                    <span>Syncing...</span>
+                </div>
+                <button id="btn-wallet" class="btn-wallet" title="Wallet">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="wallet-balance-preview" class="wallet-balance-mini hidden">0.00</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Search (Bottom Center) -->
+        <div id="search-container">
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search any location..." autocomplete="off">
+            </div>
+            <div id="search-results" class="search-results hidden"></div>
+        </div>
+
+        <!-- Global Stats (Bottom Left) -->
+        <div class="global-stats">
+            <div class="stat-pill">
+                <i class="fa-solid fa-fire"></i>
+                <span><strong id="stat-total-scars">0</strong> scars worldwide</span>
+            </div>
+        </div>
+
+        <!-- ═══ PIN A SCAR PANEL ═══ -->
+        <div id="panel-add" class="floating-panel glass panel-sm hidden">
+            <button id="btn-close-add" class="btn-icon btn-close"><i class="fa-solid fa-minus"></i></button>
+            <div class="panel-content">
+                <div class="modal-hero-icon"><i class="fa-solid fa-fire"></i></div>
+
+
+                <div class="location-badge" id="add-location-badge">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span id="add-location-text">Scanning coordinates...</span>
+                </div>
+
+                <div id="pin-step-1">
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-tag"></i> What type of mistake?</label>
+                    <div class="custom-dropdown" id="category-dropdown">
+                        <div class="dropdown-selected" id="category-selected">
+                            <span id="category-selected-text">Select a category...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="dropdown-options hidden" id="category-options">
+                            <div class="dropdown-option" data-cat="0">🔥 FOMO Buy</div>
+                            <div class="dropdown-option" data-cat="1">🪤 Rug Pull</div>
+                            <div class="dropdown-option" data-cat="2">📊 Bad Leverage</div>
+                            <div class="dropdown-option" data-cat="3">⏱️ Mistimed Exit</div>
+                            <div class="dropdown-option" data-cat="4">🎣 Phishing</div>
+                            <div class="dropdown-option" data-cat="5">⛽ Gas Fumble</div>
+                            <div class="dropdown-option" data-cat="6">💀 Other</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Severity -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-heart-crack"></i> How bad was it?</label>
+                    <div class="custom-dropdown" id="severity-dropdown">
+                        <div class="dropdown-selected" id="severity-selected">
+                            <span id="severity-selected-text">Select severity...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="dropdown-options hidden" id="severity-options">
+                            <div class="dropdown-option" data-sev="0">
+                                <span class="sev-icon">🩹</span>
+                                <span class="sev-label">Paper Cut</span>
+                            </div>
+                            <div class="dropdown-option" data-sev="1">
+                                <span class="sev-icon">🟡</span>
+                                <span class="sev-label">Bruise</span>
+                            </div>
+                            <div class="dropdown-option" data-sev="2">
+                                <span class="sev-icon">🔶</span>
+                                <span class="sev-label">Deep Cut</span>
+                            </div>
+                            <div class="dropdown-option" data-sev="3">
+                                <span class="sev-icon">💀</span>
+                                <span class="sev-label">Life Scar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- What happened -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-skull-crossbones"></i> What happened?</label>
+                    <textarea id="mistake-input" class="feel-input feel-textarea" placeholder="I aped into a random token because CT was shilling it..." maxlength="500" rows="3"></textarea>
+                    <span class="char-counter"><span id="mistake-count">0</span>/500</span>
+                </div>
+
+                <!-- What did you learn -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-lightbulb"></i> What did you learn?</label>
+                    <textarea id="lesson-input" class="feel-input feel-textarea" placeholder="Never buy into hype without checking the contract..." maxlength="300" rows="2"></textarea>
+                    <span class="char-counter"><span id="lesson-count">0</span>/300</span>
+                </div>
+
+                <div class="next-step-btn" id="btn-next-step">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                </div> <!-- End step 1 -->
+
+                <div id="pin-step-2" class="hidden">
+                <!-- Screenshots -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-image"></i> Screenshots (optional)</label>
+                    <label class="upload-area" id="upload-area">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Trade screenshots, loss porn, etc.</span>
+                        <small>Up to 5 images</small>
+                        <input type="file" id="photo-input" accept="image/*" multiple>
+                    </label>
+                    <div id="photo-grid" class="photo-grid hidden"></div>
+                </div>
+
+                <!-- Transaction hash (optional) -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-link"></i> Tx Hash or Contract (optional)</label>
+                    <input type="text" id="tx-input" class="feel-input" placeholder="0x..." maxlength="120">
+                </div>
+
+                <!-- Stake info -->
+                <div class="stake-info">
+                    <i class="fa-solid fa-coins"></i>
+                    <span>0.01 SOL fee to pin permanently</span>
+                </div>
+
+                <button id="btn-post-scar" class="btn-primary" disabled>
+                    <i class="fa-solid fa-fire"></i> Burn this into the globe
+                </button>
+
+                <div class="next-step-btn" id="btn-prev-step">
+                    <i class="fa-solid fa-chevron-up"></i>
+                </div>
+                </div> <!-- End step 2 -->
+            </div>
+        </div>
+
+        <!-- ═══ VIEW SCAR PANEL (Trading Card) ═══ -->
+        <div id="panel-view" class="floating-panel glass panel-sm hidden">
+            <button id="btn-close-view" class="btn-icon btn-close"><i class="fa-solid fa-minus"></i></button>
+            <div id="view-panel-content" class="panel-content">
+                <!-- Carousel Nav -->
+                <div id="modal-carousel-nav" class="modal-carousel-nav hidden" style="position:absolute;top:20px;left:20px;z-index:20; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:12px; display:flex; gap:8px; align-items:center;">
+                    <button id="btn-carousel-prev" style="background:none; border:none; color:white; cursor:pointer;"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="modal-carousel-indicator" class="modal-carousel-indicator" style="color:var(--text);font-size:0.8rem;">1/3</span>
+                    <button id="btn-carousel-next" style="background:none; border:none; color:white; cursor:pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                
+                <div class="modal-hero-icon" style="margin-bottom:15px;"><i class="fa-solid fa-bolt" id="view-cat-icon"></i></div>
+                
+                <div class="location-badge">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span id="view-location">Location Name</span>
+                </div>
+
+                <div id="circular-gallery">
+                    <div id="gallery-track"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; margin-top: 10px;">
+                    <!-- Category Badge -->
+                    <div id="view-category-box" style="flex:1; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; min-width: 0;">
+                        <span style="font-size:0.65rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-right:8px;">Category</span>
+                        <span style="font-family:var(--font-display); font-weight:700; font-size:0.8rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="view-category">FOMO</span>
+                    </div>
+                    <!-- Transaction Badge -->
+                    <div id="view-tx-box" class="hidden" style="flex:none; width:95px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="if(this.dataset.hash) window.open(`https://solscan.io/tx/${this.dataset.hash}?cluster=devnet`, '_blank')">
+                        <span style="font-size:0.65rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">TX</span>
+                        <span style="font-family:var(--font-display); font-weight:700; color:var(--primary-light); font-size:0.8rem;">View <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.8em;"></i></span>
+                    </div>
+                </div>
+
+                <!-- Author & Delete Row -->
+                <div style="display: flex; align-items: center; background:rgba(0,0,0,0.2); border-radius:6px; border:1px solid rgba(255,255,255,0.05); padding:6px 12px; margin-bottom: 15px;">
+                    <div style="font-size:0.65rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; width:60px;"><i class="fa-solid fa-wallet"></i> Author</div>
+                    <div id="view-author" style="flex:1; text-align:right; font-family:monospace; font-size:0.8rem; color:var(--text-dim);"></div>
+                    <!-- Mini Delete Button -->
+                    <button id="btn-delete" class="hidden" title="Delete Scar" style="background:transparent; border:none; color:var(--sev-lifescar); cursor:pointer; padding:4px 6px; border-radius:4px; margin-left:12px; opacity:0.8; transition:0.2s;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239,68,68,0.1)';" onmouseout="this.style.opacity='0.8'; this.style.background='transparent';">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex; gap:12px; margin-top:auto;">
+                    <button id="btn-saved-me" class="btn-primary" style="flex:2; padding:10px;">
+                        <i class="fa-solid fa-heart"></i> <span id="btn-saved-me-text">This saved me</span>
+                    </button>
+                    <button id="btn-report" class="btn-ghost" style="flex:1; padding:10px;">
+                        <i class="fa-solid fa-flag"></i> <span>Report</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ FULLSCREEN IMAGE VIEWER ═══ -->
+        <div id="fullscreen-viewer" class="fullscreen-viewer hidden">
+            <button id="btn-close-fullscreen" class="btn-fullscreen-close"><i class="fa-solid fa-xmark"></i></button>
+            <div id="fullscreen-image-container" class="fullscreen-image-container">
+                <img id="fullscreen-image" src="" alt="Full view">
+            </div>
+            <div class="fullscreen-nav">
+                <button id="btn-prev-image" class="btn-nav"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="fullscreen-counter" class="fullscreen-counter">1/1</span>
+                <button id="btn-next-image" class="btn-nav"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+
+        <!-- ═══ WALLET PANEL ═══ -->
+        <div id="panel-wallet" class="floating-panel floating-panel-rounded glass hidden">
+            <button id="btn-close-wallet" class="btn-icon btn-close"><i class="fa-solid fa-minus"></i></button>
+            <div class="panel-content">
+                <div class="wallet-panel-header">
+                    <h2><i class="fa-solid fa-wallet"></i> Wallet</h2>
+                </div>
+                <div id="wallet-content">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ WALLET SETUP PANEL ═══ -->
+        <div id="panel-wallet-setup" class="floating-panel glass panel-sm hidden">
+            <button id="btn-close-wallet-setup" class="btn-icon btn-close"><i class="fa-solid fa-minus"></i></button>
+            <div class="panel-content">
+                <div class="modal-hero-icon"><i class="fa-solid fa-wallet"></i></div>
+                <h2 class="modal-title center">Set Up Your Wallet</h2>
+                <p class="modal-description center">Create a wallet to pin your scars on-chain.</p>
+
+                <div id="wallet-setup-create" class="wallet-setup-section">
+                    <div class="form-group">
+                        <label class="form-label">Create a password</label>
+                        <input type="password" id="wallet-password" class="feel-input" placeholder="Enter a strong password...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm password</label>
+                        <input type="password" id="wallet-password-confirm" class="feel-input" placeholder="Confirm your password...">
+                    </div>
+                    <button id="btn-create-wallet" class="btn-primary">Create Wallet</button>
+                    <div class="divider"><span>or</span></div>
+                    <button id="btn-show-import" class="btn-ghost">Import Existing Wallet</button>
+                </div>
+
+                <div id="wallet-setup-import" class="wallet-setup-section hidden">
+                    <div class="form-group">
+                        <label class="form-label">Private key or seed phrase</label>
+                        <textarea id="wallet-import-key" class="feel-input feel-textarea" placeholder="Enter your private key or 12-word seed phrase..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Set a password</label>
+                        <input type="password" id="wallet-import-password" class="feel-input" placeholder="Encrypt your wallet with a password...">
+                    </div>
+                    <button id="btn-import-wallet" class="btn-primary">Import Wallet</button>
+                    <button id="btn-show-create" class="btn-ghost">Back to Create</button>
+                </div>
+
+                <div id="wallet-setup-loading" class="wallet-setup-section hidden">
+                    <div class="spinner large"></div>
+                    <p class="center" style="color:var(--text-dim);margin-top:8px;">Encrypting your wallet...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ WALLET UNLOCK PANEL ═══ -->
+        <div id="panel-wallet-unlock" class="floating-panel glass panel-sm hidden">
+            <button id="btn-close-wallet-unlock" class="btn-icon btn-close"><i class="fa-solid fa-minus"></i></button>
+            <div class="panel-content">
+                <div class="modal-hero-icon"><i class="fa-solid fa-lock"></i></div>
+                <h2 class="modal-title center">Welcome Back</h2>
+                <p class="modal-description center">Enter your password to unlock your wallet.</p>
+                <div class="form-group">
+                    <input type="password" id="wallet-unlock-password" class="feel-input" placeholder="Enter your password...">
+                </div>
+                <button id="btn-unlock-wallet" class="btn-primary"><i class="fa-solid fa-unlock"></i> Unlock</button>
+                <p id="unlock-error" class="error-text hidden"></p>
+                <button id="btn-skip-unlock" class="btn-ghost" style="margin-top:10px;"><i class="fa-solid fa-forward"></i> Skip for now</button>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         APPLICATION LOGIC
+         ═══════════════════════════════════════════════════ -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        /* ═══════════════════════════════════════════════════
+           CONFIGURATION
+           ═══════════════════════════════════════════════════ */
+        // Web Compatibility Polyfill (Allows hosting as a static Web App)
+        if (typeof window.scarsAPI === 'undefined') {
+            window.scarsAPI = {
+                saveWallet: async (data) => localStorage.setItem('defiscars_wallet', data),
+                loadWallet: async () => localStorage.getItem('defiscars_wallet'),
+                walletExists: async () => !!localStorage.getItem('defiscars_wallet'),
+                deleteWallet: async () => localStorage.removeItem('defiscars_wallet')
+            };
+        }
+
+        const CONFIG = {
+            SOLANA_RPC:         'https://api.devnet.solana.com',
+            PROGRAM_ID:         '3EUbCw45m9gWr32QJ4muF4SiofFgggGzqTpWJEfKEhiV',  // Program ID from anchor build
+            TREASURY_WALLET:    'Cswy3cTVwwjWA7CSDjr2w3o7gRderZSNhpnCekmbjVCa',  // Solana treasury pubkey
+            PINATA_JWT:         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI5YTNkYTAzZS0yNzNiLTRjNmMtYWVlYy1jODI0M2Q1YzBjZGQiLCJlbWFpbCI6ImtlaG5tYXJ2dkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMTI3MDZmYjRlMGNiYWUwNjg5ZGIiLCJzY29wZWRLZXlTZWNyZXQiOiI3MTA5NTBjNmE3MjJjM2E1OWExMjgyOTUxYTAzMTQ4YjgzN2E5ZjBhOTMyMTE5NTg1MDA5ZjhkZTk3NGJjZmYyIiwiZXhwIjoxODE1ODgyNTAyfQ.4QUFNzITiDTfXr6PBaC32sPkGgpiEShh_Oe9-akEgU8',
+            PINATA_GATEWAY:     'lavender-occasional-krill-680.mypinata.cloud',
+            MIN_STAKE:          0.01,
+            MIN_STAKE_LAMPORTS: 10_000_000,  // 0.01 SOL
+            MAX_SCARS_PER_DAY:  3,
+            FLAG_THRESHOLD:     5,
+            MAX_PHOTOS:         5,
+            MAX_MISTAKE:        500,
+            MAX_LESSON:         300,
+        };
+
+        const CATEGORIES = ['FOMO Buy', 'Rug Pull', 'Bad Leverage', 'Mistimed Exit', 'Phishing', 'Gas Fumble', 'Other'];
+        const CAT_ICONS = ['🔥', '🪤', '📊', '⏱️', '🎣', '⛽', '💀'];
+        const SEVERITIES = ['Paper Cut', 'Bruise', 'Deep Cut', 'Life Scar'];
+        const SEV_ICONS = ['🩹', '🟡', '🔶', '💀'];
+        const SEV_COLORS = ['var(--sev-papercut)', 'var(--sev-bruise)', 'var(--sev-deepcut)', 'var(--sev-lifescar)'];
+        const MARKER_COLORS = [0xFF6B6B, 0xEF4444, 0xF97316, 0xFBBF24, 0xA855F7, 0x06B6D4, 0x64748B];
+
+        /* ═══════════════════════════════════════════════════
+           SOLANA SETUP
+           ═══════════════════════════════════════════════════ */
+        const { Connection, PublicKey, Keypair, SystemProgram, Transaction, TransactionInstruction, LAMPORTS_PER_SOL } = solanaWeb3;
+
+        const solConnection = new Connection(CONFIG.SOLANA_RPC, 'confirmed');
+        const programId = new PublicKey(CONFIG.PROGRAM_ID);
+        const treasuryPubkey = new PublicKey(CONFIG.TREASURY_WALLET);
+
+        /* ─── PDA Helpers ─────────────────────────────────── */
+        function findGlobalStatePDA() {
+            return PublicKey.findProgramAddressSync([Buffer.from('global')], programId);
+        }
+
+        function findScarPDA(scarId) {
+            const idBuf = Buffer.alloc(8);
+            idBuf.writeBigUInt64LE(BigInt(scarId));
+            return PublicKey.findProgramAddressSync([Buffer.from('scar'), idBuf], programId);
+        }
+
+        function findUserStatsPDA(userPubkey) {
+            return PublicKey.findProgramAddressSync([Buffer.from('user_stats'), userPubkey.toBuffer()], programId);
+        }
+
+        function findVoteRecordPDA(scarId, voterPubkey) {
+            const idBuf = Buffer.alloc(8);
+            idBuf.writeBigUInt64LE(BigInt(scarId));
+            return PublicKey.findProgramAddressSync([Buffer.from('vote'), idBuf, voterPubkey.toBuffer()], programId);
+        }
+
+        function findFlagRecordPDA(scarId, flaggerPubkey) {
+            const idBuf = Buffer.alloc(8);
+            idBuf.writeBigUInt64LE(BigInt(scarId));
+            return PublicKey.findProgramAddressSync([Buffer.from('flag'), idBuf, flaggerPubkey.toBuffer()], programId);
+        }
+
+        /* ─── Anchor-compatible Instruction Encoding ────── */
+        // Anchor uses the first 8 bytes of SHA-256("global:<instruction_name>") as the discriminator.
+        // We pre-compute these for our instructions.
+        async function anchorDiscriminator(name) {
+            const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('global:' + name));
+            return new Uint8Array(hash).slice(0, 8);
+        }
+
+        // Pre-compute discriminators at load time
+        const DISCRIMINATORS = {};
+        (async () => {
+            DISCRIMINATORS.postScar = await anchorDiscriminator('post_scar');
+            DISCRIMINATORS.savedMe = await anchorDiscriminator('saved_me');
+            DISCRIMINATORS.flagScar = await anchorDiscriminator('flag_scar');
+        })();
+
+        /* ─── Instruction Builders ────────────────────────── */
+        function encodePostScarData(contentHash, ipfsCid, category, severity, lat, lon) {
+            const disc = DISCRIMINATORS.postScar;
+            const cidBytes = new TextEncoder().encode(ipfsCid);
+            // Layout: disc(8) + contentHash(32) + cidLen(4) + cidBytes(N) + category(1) + severity(1) + lat(4) + lon(4)
+            const buf = Buffer.alloc(8 + 32 + 4 + cidBytes.length + 1 + 1 + 4 + 4);
+            let offset = 0;
+            buf.set(disc, offset); offset += 8;
+            buf.set(contentHash, offset); offset += 32;
+            buf.writeUInt32LE(cidBytes.length, offset); offset += 4;
+            buf.set(cidBytes, offset); offset += cidBytes.length;
+            buf.writeUInt8(category, offset); offset += 1;
+            buf.writeUInt8(severity, offset); offset += 1;
+            buf.writeInt32LE(lat, offset); offset += 4;
+            buf.writeInt32LE(lon, offset); offset += 4;
+            return buf;
+        }
+
+        function encodeSavedMeData(scarId) {
+            const disc = DISCRIMINATORS.savedMe;
+            const buf = Buffer.alloc(8 + 8);
+            buf.set(disc, 0);
+            buf.writeBigUInt64LE(BigInt(scarId), 8);
+            return buf;
+        }
+
+        function encodeFlagScarData(scarId) {
+            const disc = DISCRIMINATORS.flagScar;
+            const buf = Buffer.alloc(8 + 8);
+            buf.set(disc, 0);
+            buf.writeBigUInt64LE(BigInt(scarId), 8);
+            return buf;
+        }
+
+        /* ─── Account Deserialization ─────────────────────── */
+        // Anchor accounts have an 8-byte discriminator prefix, then the struct data.
+        function deserializeScar(data) {
+            let offset = 8; // skip discriminator
+            const id = Number(data.readBigUInt64LE(offset)); offset += 8;
+            const author = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
+            const contentHash = data.slice(offset, offset + 32); offset += 32;
+            const cidLen = data.readUInt32LE(offset); offset += 4;
+            const ipfsCID = new TextDecoder().decode(data.slice(offset, offset + cidLen)); offset += cidLen;
+            const category = data.readUInt8(offset); offset += 1;
+            const severity = data.readUInt8(offset); offset += 1;
+            const stakeAmount = Number(data.readBigUInt64LE(offset)); offset += 8;
+            const createdAt = Number(data.readBigInt64LE(offset)); offset += 8;
+            const savedMeCount = Number(data.readBigUInt64LE(offset)); offset += 8;
+            const flagCount = Number(data.readBigUInt64LE(offset)); offset += 8;
+            const lat = data.readInt32LE(offset); offset += 4;
+            const lon = data.readInt32LE(offset); offset += 4;
+            const isHidden = data.readUInt8(offset) !== 0; offset += 1;
+            // bump: offset += 1;
+            return { id, author: author.toBase58(), contentHash, ipfsCID, category, severity, stakeAmount, createdAt, savedMeCount, flagCount, lat, lon, isHidden };
+        }
+
+        function deserializeGlobalState(data) {
+            let offset = 8; // skip discriminator
+            const owner = new PublicKey(data.slice(offset, offset + 32)); offset += 32;
+            const nextId = Number(data.readBigUInt64LE(offset)); offset += 8;
+            const totalScars = Number(data.readBigUInt64LE(offset)); offset += 8;
+            return { owner: owner.toBase58(), nextId, totalScars };
+        }
+
+        /* ═══════════════════════════════════════════════════
+           APPLICATION STATE
+           ═══════════════════════════════════════════════════ */
+        const state = {
+            scars: [],                      // All loaded scars (local + on-chain)
+            currentClickPosition: null,
+            selectedScarId: null,
+            isDragging: false,
+            pointerDownPos: new THREE.Vector2(),
+            markerMeshes: [],
+            earthRadius: 5,
+            cloudMesh: null,
+            wallet: {
+                instance: null,
+                address: null,
+                balance: '0',
+                isLocked: true,
+            },
+            uploadedPhotos: [],
+            fullscreenPhotos: [],
+            fullscreenIndex: 0,
+            fullscreenZoom: 1,
+            searchDebounce: null,
+            selectedCategory: -1,
+            selectedSeverity: -1,
+            viewingScars: [],
+            currentViewIndex: 0,
+            activePanels: new Set(),
+            gallery: {
+                items: [],
+                targetScroll: 0,
+                currentScroll: 0,
+                spacing: 200,
+                isDragging: false,
+                startX: 0,
+                startScroll: 0
+            },
+            cameraOffset: { x: 0 }
+        };
+
+        /* ═══════════════════════════════════════════════════
+           UTILITIES
+           ═══════════════════════════════════════════════════ */
+        function vector3ToLatLon(p) {
+            const r = p.length();
+            const phi = Math.acos(p.y / r);
+            const theta = Math.atan2(p.z, -p.x);
+            let lat = 90 - (phi * 180 / Math.PI);
+            let lon = (theta * 180 / Math.PI) - 180;
+            while (lon < -180) lon += 360;
+            while (lon > 180) lon -= 360;
+            return { lat, lon };
+        }
+
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+
+        async function fetchLocationName(lat, lon) {
+            try {
+                const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                const data = await res.json();
+                if (data.city && data.countryName) return `${data.city}, ${data.countryName}`;
+                if (data.countryName) return data.countryName;
+                if (data.locality) return data.locality;
+                return `Ocean (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`;
+            } catch { return `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`; }
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function formatTime(ts) {
+            const d = new Date(ts);
+            return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function shortAddr(addr) {
+            if (!addr) return '0000...0000';
+            return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+        }
+
+        async function hashContent(mistake, lesson, category, timestamp) {
+            const payload = `${mistake}|${lesson}|${category}|${timestamp}`;
+            const encoded = new TextEncoder().encode(payload);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+            return new Uint8Array(hashBuffer);
+        }
+
+        async function resizeImage(dataUrl, maxDim = 1920) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    let { width: w, height: h } = img;
+                    if (w <= maxDim && h <= maxDim) { resolve(dataUrl); return; }
+                    const r = Math.min(maxDim / w, maxDim / h);
+                    w *= r; h *= r;
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(c.toDataURL('image/jpeg', 0.85));
+                };
+                img.src = dataUrl;
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════
+           TOAST NOTIFICATIONS
+           ═══════════════════════════════════════════════════ */
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast toast-${type}`;
+            const icons = { success: 'fa-check-circle', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+            el.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i><span>${msg}</span>`;
+            container.appendChild(el);
+            setTimeout(() => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 350); }, 3500);
+        }
+
+        /* ═══════════════════════════════════════════════════
+           DATABASE (IndexedDB)
+           ═══════════════════════════════════════════════════ */
+        const DB_NAME = 'defiScarsDB';
+        const STORE = 'scars';
+        let _dbPromise = null;
+
+        function openDB() {
+            if (_dbPromise) return _dbPromise;
+            _dbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(STORE)) {
+                        db.createObjectStore(STORE, { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            return _dbPromise;
+        }
+
+        async function dbPut(record) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).put(record);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function dbGetAll() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readonly');
+                const req = tx.objectStore(STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function dbDelete(id) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).delete(id);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════
+           IPFS (Pinata REST API) — for photos/metadata
+           ═══════════════════════════════════════════════════ */
+        async function uploadJSONToIPFS(jsonData) {
+            const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CONFIG.PINATA_JWT}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pinataContent: jsonData })
+            });
+            if (!res.ok) throw new Error('IPFS upload failed');
+            const result = await res.json();
+            return result.IpfsHash;
+        }
+
+        async function uploadFileToIPFS(blob, fileName) {
+            const formData = new FormData();
+            formData.append('file', blob, fileName || 'photo.jpg');
+            const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${CONFIG.PINATA_JWT}` },
+                body: formData
+            });
+            if (!res.ok) throw new Error('IPFS file upload failed');
+            const result = await res.json();
+            return result.IpfsHash;
+        }
+
+        async function fetchFromIPFS(cid) {
+            const res = await fetch(`https://${CONFIG.PINATA_GATEWAY}/ipfs/${cid}`);
+            if (!res.ok) throw new Error('IPFS fetch failed');
+            return res.json();
+        }
+
+        /* ═══════════════════════════════════════════════════
+           WALLET MANAGEMENT (Solana Keypair)
+           ═══════════════════════════════════════════════════ */
+
+        async function refreshBalance() {
+            if (!state.wallet.address) return;
+            try {
+                const pubkey = new PublicKey(state.wallet.address);
+                const lamports = await solConnection.getBalance(pubkey);
+                state.wallet.balance = (lamports / LAMPORTS_PER_SOL).toString();
+                updateWalletUI();
+            } catch (e) { console.warn('Balance fetch failed:', e); }
+        }
+
+        // Encrypt secret key bytes with a password using AES-GCM via Web Crypto
+        async function encryptSecretKey(secretKeyBytes, password) {
+            const enc = new TextEncoder();
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+            const cryptoKey = await crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt']
+            );
+            const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, secretKeyBytes);
+            // Store as JSON: { salt, iv, ciphertext } all as base64
+            const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+            return JSON.stringify({ salt: toB64(salt), iv: toB64(iv), ct: toB64(ciphertext) });
+        }
+
+        async function decryptSecretKey(encryptedJSON, password) {
+            const enc = new TextEncoder();
+            const fromB64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+            const { salt, iv, ct } = JSON.parse(encryptedJSON);
+            const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+            const cryptoKey = await crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: fromB64(salt), iterations: 100000, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, cryptoKey, fromB64(ct));
+            return new Uint8Array(decrypted);
+        }
+
+        async function createNewWallet(password) {
+            const keypair = Keypair.generate();
+            const encrypted = await encryptSecretKey(keypair.secretKey, password);
+            await window.scarsAPI.saveWallet(encrypted);
+            state.wallet.instance = keypair;
+            state.wallet.address = keypair.publicKey.toBase58();
+            state.wallet.isLocked = false;
+            await refreshBalance();
+            return keypair;
+        }
+
+        async function importWallet(keyOrPhrase, password) {
+            let keypair;
+            const trimmed = keyOrPhrase.trim();
+            // Try to decode as base58 secret key (64 bytes or 32 bytes)
+            try {
+                const decoded = bs58.decode(trimmed);
+                if (decoded.length === 64) {
+                    keypair = Keypair.fromSecretKey(decoded);
+                } else if (decoded.length === 32) {
+                    // 32-byte seed
+                    keypair = Keypair.fromSeed(decoded);
+                } else {
+                    throw new Error('Invalid key length');
+                }
+            } catch {
+                // Try as JSON array (e.g. [1,2,3,...]) — Solana CLI format
+                try {
+                    const arr = JSON.parse(trimmed);
+                    keypair = Keypair.fromSecretKey(new Uint8Array(arr));
+                } catch {
+                    throw new Error('Invalid private key format. Use a base58 key or a JSON byte array.');
+                }
+            }
+            const encrypted = await encryptSecretKey(keypair.secretKey, password);
+            await window.scarsAPI.saveWallet(encrypted);
+            state.wallet.instance = keypair;
+            state.wallet.address = keypair.publicKey.toBase58();
+            state.wallet.isLocked = false;
+            await refreshBalance();
+            return keypair;
+        }
+
+        async function unlockWallet(password) {
+            const encrypted = await window.scarsAPI.loadWallet();
+            if (!encrypted) throw new Error('No wallet found');
+            const secretKey = await decryptSecretKey(encrypted, password);
+            const keypair = Keypair.fromSecretKey(secretKey);
+            state.wallet.instance = keypair;
+            state.wallet.address = keypair.publicKey.toBase58();
+            state.wallet.isLocked = false;
+            await refreshBalance();
+            return keypair;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           BLOCKCHAIN INTERACTIONS (Solana)
+           ═══════════════════════════════════════════════════ */
+
+        async function sendAndConfirmTx(transaction, signers) {
+            transaction.recentBlockhash = (await solConnection.getLatestBlockhash()).blockhash;
+            transaction.feePayer = signers[0].publicKey;
+            transaction.sign(...signers);
+            const rawTx = transaction.serialize();
+            const txSig = await solConnection.sendRawTransaction(rawTx, { skipPreflight: false });
+            await solConnection.confirmTransaction(txSig, 'confirmed');
+            return txSig;
+        }
+
+        async function postScarOnChain(contentHash, ipfsCID, category, severity, lat, lon) {
+            if (!state.wallet.instance || CONFIG.PROGRAM_ID === '11111111111111111111111111111111') return null;
+            const keypair = state.wallet.instance;
+            const [globalStatePDA] = findGlobalStatePDA();
+
+            // We need to read the current next_id from GlobalState to derive the Scar PDA
+            const globalInfo = await solConnection.getAccountInfo(globalStatePDA);
+            if (!globalInfo) { console.error('GlobalState not initialized'); return null; }
+            const globalState = deserializeGlobalState(globalInfo.data);
+            const nextId = globalState.nextId;
+
+            const [scarPDA] = findScarPDA(nextId);
+            const [userStatsPDA] = findUserStatsPDA(keypair.publicKey);
+
+            const latFixed = Math.round(lat * 10000);
+            const lonFixed = Math.round(lon * 10000);
+
+            const data = encodePostScarData(contentHash, ipfsCID, category, severity, latFixed, lonFixed);
+
+            const ix = new TransactionInstruction({
+                programId,
+                keys: [
+                    { pubkey: globalStatePDA, isSigner: false, isWritable: true },
+                    { pubkey: scarPDA, isSigner: false, isWritable: true },
+                    { pubkey: userStatsPDA, isSigner: false, isWritable: true },
+                    { pubkey: keypair.publicKey, isSigner: true, isWritable: true },
+                    { pubkey: treasuryPubkey, isSigner: false, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+
+            const tx = new Transaction().add(ix);
+            await sendAndConfirmTx(tx, [keypair]);
+            return nextId;
+        }
+
+        async function savedMeOnChain(scarId) {
+            if (!state.wallet.instance || CONFIG.PROGRAM_ID === '11111111111111111111111111111111') return false;
+            const keypair = state.wallet.instance;
+            const [scarPDA] = findScarPDA(scarId);
+            const [voteRecordPDA] = findVoteRecordPDA(scarId, keypair.publicKey);
+
+            const data = encodeSavedMeData(scarId);
+            const ix = new TransactionInstruction({
+                programId,
+                keys: [
+                    { pubkey: scarPDA, isSigner: false, isWritable: true },
+                    { pubkey: voteRecordPDA, isSigner: false, isWritable: true },
+                    { pubkey: keypair.publicKey, isSigner: true, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+
+            const tx = new Transaction().add(ix);
+            await sendAndConfirmTx(tx, [keypair]);
+            return true;
+        }
+
+        async function flagScarOnChain(scarId) {
+            if (!state.wallet.instance || CONFIG.PROGRAM_ID === '11111111111111111111111111111111') return false;
+            const keypair = state.wallet.instance;
+            const [scarPDA] = findScarPDA(scarId);
+            const [flagRecordPDA] = findFlagRecordPDA(scarId, keypair.publicKey);
+
+            const data = encodeFlagScarData(scarId);
+            const ix = new TransactionInstruction({
+                programId,
+                keys: [
+                    { pubkey: scarPDA, isSigner: false, isWritable: true },
+                    { pubkey: flagRecordPDA, isSigner: false, isWritable: true },
+                    { pubkey: keypair.publicKey, isSigner: true, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+
+            const tx = new Transaction().add(ix);
+            await sendAndConfirmTx(tx, [keypair]);
+            return true;
+        }
+
+        async function loadGlobalScarsFromChain() {
+            if (CONFIG.PROGRAM_ID === '11111111111111111111111111111111') return [];
+            try {
+                // Use getProgramAccounts to fetch all Scar accounts.
+                // The Anchor discriminator for Scar is the first 8 bytes.
+                const scarDiscriminator = await anchorDiscriminator('Scar');
+                // Actually, Anchor account discriminators use SHA-256("account:<AccountName>").slice(0,8)
+                const scarAccDiscHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Scar'));
+                const scarAccDisc = new Uint8Array(scarAccDiscHash).slice(0, 8);
+
+                const accounts = await solConnection.getProgramAccounts(programId, {
+                    filters: [
+                        { memcmp: { offset: 0, bytes: bs58.encode(scarAccDisc) } }
+                    ]
+                });
+
+                return accounts
+                    .map(({ account }) => {
+                        try { return deserializeScar(account.data); } catch { return null; }
+                    })
+                    .filter(s => s && !s.isHidden)
+                    .map(s => ({
+                        id: `chain-${s.id}`,
+                        onChainId: s.id,
+                        author: s.author,
+                        contentHash: s.contentHash,
+                        ipfsCID: s.ipfsCID,
+                        category: s.category,
+                        severity: s.severity,
+                        stakeAmount: s.stakeAmount / LAMPORTS_PER_SOL,
+                        savedAt: s.createdAt * 1000,
+                        savedMeCount: s.savedMeCount,
+                        flagCount: s.flagCount,
+                        lat: s.lat / 10000,
+                        lon: s.lon / 10000,
+                        isHidden: s.isHidden,
+                    }));
+            } catch (e) {
+                console.warn('Failed to load global scars:', e);
+                return [];
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           THREE.JS SETUP
+           ═══════════════════════════════════════════════════ */
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        let camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 28);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        container.appendChild(renderer.domElement);
+
+        // Post-processing (Bloom)
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85
+        );
+        bloomPass.threshold = 0.6;
+        bloomPass.strength = 1.0;
+        bloomPass.radius = 0.5;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.zoomSpeed = 2.5;
+        controls.minDistance = 6;
+        controls.maxDistance = 45;
+        controls.enablePan = false;
+        controls.target.set(0, -4.5, 0);
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(10, 8, 5);
+        scene.add(dirLight);
+        const backLight = new THREE.DirectionalLight(0x8B5CF6, 0.15);
+        backLight.position.set(-10, -5, -10);
+        scene.add(backLight);
+
+        // Earth group (shifted down)
+        const masterGroup = new THREE.Group();
+        masterGroup.position.y = -4.5;
+        scene.add(masterGroup);
+        const earthGroup = new THREE.Group();
+        masterGroup.add(earthGroup);
+
+        // Loading
+        const loadingEl = document.getElementById('loading-indicator');
+        loadingEl.classList.remove('hidden');
+
+        let isDataInitialized = false;
+        setTimeout(() => {
+            if (!isDataInitialized) {
+                isDataInitialized = true;
+                loadingEl.classList.add('hidden');
+                loadAllScars();
+            }
+        }, 8000);
+
+        // Textures
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.setCrossOrigin('anonymous');
+        const loadTex = url => new Promise(res => textureLoader.load(url, res, undefined, () => res(null)));
+
+        Promise.all([
+            loadTex('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+            loadTex('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+            loadTex('https://unpkg.com/three-globe/example/img/earth-water.png'),
+            loadTex('https://unpkg.com/three-globe/example/img/earth-clouds10k.png'),
+        ]).then(([map, bumpMap, specularMap, cloudsMap]) => {
+            const earthMat = new THREE.MeshPhongMaterial({
+                map, bumpMap, bumpScale: 0.15, specularMap,
+                specular: new THREE.Color(0x333333), shininess: 15,
+                color: map ? 0xffffff : 0x001133
+            });
+            const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(state.earthRadius, 64, 64), earthMat);
+            earthMesh.name = 'Earth';
+            earthGroup.add(earthMesh);
+
+            // Clouds
+            const cloudMat = new THREE.MeshPhongMaterial({
+                map: cloudsMap, transparent: true, opacity: cloudsMap ? 0.7 : 0,
+                blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
+            });
+            state.cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(state.earthRadius * 1.006, 64, 64), cloudMat);
+            earthGroup.add(state.cloudMesh);
+
+            loadingEl.classList.add('hidden');
+            if (!isDataInitialized) { isDataInitialized = true; loadAllScars(); }
+        });
+
+        // Starfield
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 12000;
+        const posArr = new Float32Array(starsCount * 3);
+        const colArr = new Float32Array(starsCount * 3);
+
+        for (let i = 0; i < starsCount * 3; i += 3) {
+            const r = 40 + Math.random() * 120;
+            const t = Math.random() * Math.PI * 2;
+            const p = Math.acos(Math.random() * 2 - 1);
+            posArr[i] = r * Math.sin(p) * Math.cos(t);
+            posArr[i+1] = r * Math.sin(p) * Math.sin(t);
+            posArr[i+2] = r * Math.cos(p);
+
+            const ct = Math.random();
+            if (ct > 0.92) { colArr[i]=0.6; colArr[i+1]=0.7; colArr[i+2]=1.0; }
+            else if (ct > 0.85) { colArr[i]=1.0; colArr[i+1]=0.85; colArr[i+2]=0.6; }
+            else { colArr[i]=1; colArr[i+1]=1; colArr[i+2]=1; }
+        }
+
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        starsGeo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+        const starMesh = new THREE.Points(starsGeo, new THREE.PointsMaterial({
+            size: 0.12, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true
+        }));
+        scene.add(starMesh);
+
+        /* ═══════════════════════════════════════════════════
+           PANEL MANAGEMENT & CAMERA OFFSET
+           ═══════════════════════════════════════════════════ */
+        function setGlobeOffset(shifted) {
+            // Panel takes 464px on the right (440px width + 24px margin).
+            // To perfectly center the globe in the remaining space on the left, we shift the camera by -464/2 = -232px.
+            // Wait, to shift the rendered image left, we must shift the camera frustum right (+232px).
+            const targetX = shifted ? 232 : 0;
+            gsap.to(state.cameraOffset, {
+                x: targetX,
+                duration: 0.8,
+                ease: 'power3.inOut',
+                onUpdate: () => {
+                    if (state.cameraOffset.x === 0) {
+                        camera.clearViewOffset();
+                    } else {
+                        camera.setViewOffset(window.innerWidth, window.innerHeight, state.cameraOffset.x, 0, window.innerWidth, window.innerHeight);
+                    }
+                }
+            });
+
+            // Move the search bar alongside the globe
+            const searchShift = shifted ? -232 : 0;
+            gsap.to('#search-container', {
+                x: searchShift,
+                xPercent: -50, // Maintain the center alignment
+                duration: 0.8,
+                ease: 'power3.inOut'
+            });
+
+            // Spin the globe dynamically as it pans
+            const spinAmount = shifted ? Math.PI / 4 : -Math.PI / 4;
+            gsap.to(earthGroup.rotation, {
+                y: `+=${spinAmount}`,
+                duration: 0.8,
+                ease: 'power3.inOut'
+            });
+            if (state.cloudMesh) {
+                gsap.to(state.cloudMesh.rotation, {
+                    y: `+=${spinAmount * 1.1}`,
+                    duration: 0.8,
+                    ease: 'power3.inOut'
+                });
+            }
+        }
+
+        function showPanel(panelEl) {
+            document.querySelectorAll('.floating-panel').forEach(p => {
+                if (p !== panelEl && p.classList.contains('visible')) {
+                    hidePanel(p, false);
+                }
+            });
+            panelEl.classList.remove('hidden');
+            requestAnimationFrame(() => panelEl.classList.add('visible'));
+            state.activePanels.add(panelEl.id);
+            if (state.activePanels.size === 1) {
+                setGlobeOffset(true);
+            }
+        }
+
+        function hidePanel(panelEl, triggerOffsetUpdate = true) {
+            panelEl.classList.remove('visible');
+            setTimeout(() => panelEl.classList.add('hidden'), 500);
+            state.activePanels.delete(panelEl.id);
+            if (triggerOffsetUpdate && state.activePanels.size === 0) {
+                setGlobeOffset(false);
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           INTERACTION (Raycasting)
+           ═══════════════════════════════════════════════════ */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener('pointerdown', e => {
+            state.isDragging = false;
+            state.pointerDownPos.set(e.clientX, e.clientY);
+        });
+
+        renderer.domElement.addEventListener('pointermove', e => {
+            if (state.pointerDownPos.distanceTo(new THREE.Vector2(e.clientX, e.clientY)) > 5) {
+                state.isDragging = true;
+            }
+        });
+
+        renderer.domElement.addEventListener('pointerup', e => {
+            const wasDragging = state.isDragging;
+            state.isDragging = false;
+            if (wasDragging) return;
+            
+            // Convert to normalized device coordinates
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            // raycaster automatically accounts for camera.setViewOffset
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check markers first
+            const markerHits = raycaster.intersectObjects(state.markerMeshes);
+            if (markerHits.length > 0) {
+                openViewModal(markerHits[0].object.userData.id);
+                return;
+            }
+
+            // Check earth
+            const earthHits = raycaster.intersectObjects(earthGroup.children);
+            if (earthHits.length > 0) {
+                const hit = earthHits.find(i => i.object.name === 'Earth');
+                if (hit) {
+                    state.currentClickPosition = earthGroup.worldToLocal(hit.point.clone());
+                    openAddModal();
+                }
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════
+           MARKER CREATION
+           ═══════════════════════════════════════════════════ */
+        function createMarkerMesh(position, id, labelText, category = 6) {
+            const group = new THREE.Group();
+            group.position.copy(position);
+            group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), position.clone().normalize());
+
+            // Connecting Rope
+            const lineLen = 1.2;
+            const basePos = new THREE.Vector3(0, 0.0, 0);
+            const endPos = new THREE.Vector3(0, lineLen, 0);
+
+            const curve = new THREE.CubicBezierCurve3(
+                basePos.clone(),
+                new THREE.Vector3(0, lineLen * 0.3, 0),
+                new THREE.Vector3(0, lineLen * 0.7, 0),
+                endPos.clone()
+            );
+
+            const markerColor = MARKER_COLORS[category] || 0x00FFFF;
+            const tubeGeo = new THREE.TubeGeometry(curve, 10, 0.005, 4, false);
+            const lineMat = new THREE.MeshBasicMaterial({
+                color: markerColor, transparent: true, opacity: 0.9, depthWrite: true
+            });
+            const ropeMesh = new THREE.Mesh(tubeGeo, lineMat);
+
+            // Hitbox
+            const hitGeo = new THREE.SphereGeometry(0.35, 8, 8);
+            hitGeo.translate(0, lineLen / 2, 0);
+            const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+            const hitBox = new THREE.Mesh(hitGeo, hitMat);
+            hitBox.userData = { id };
+
+            group.add(ropeMesh); group.add(hitBox);
+
+            // Create HTML Label
+            const labelDiv = document.createElement('div');
+            labelDiv.className = `marker-label tag-style marker-cat-${category}`;
+            labelDiv.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${labelText || 'Unknown'}`;
+            labelDiv.style.pointerEvents = 'auto'; // Force pointer events inline
+            labelDiv.style.cursor = 'pointer';
+            
+            const handleTagClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openViewModal(id);
+            };
+            
+            labelDiv.addEventListener('click', handleTagClick);
+            labelDiv.addEventListener('pointerdown', handleTagClick);
+            labelDiv.addEventListener('touchend', handleTagClick);
+            document.getElementById('labels-container').appendChild(labelDiv);
+
+            requestAnimationFrame(() => {
+                const rect = labelDiv.getBoundingClientRect();
+                group.userData.labelWidth = rect.width || 150;
+                group.userData.labelHeight = rect.height || 35;
+            });
+
+            group.userData = {
+                labelDiv, ropeMesh, curve,
+                randomOffset: Math.random() * Math.PI * 2,
+                windSpeed: 0.8 + Math.random() * 0.5,
+                basePos: basePos,
+                targetEndPos: endPos.clone(),
+                currentEndPos: endPos.clone(),
+                labelWidth: 150,
+                labelHeight: 35,
+                currentScreenX: undefined,
+                currentScreenY: undefined,
+                vx: 0,
+                vy: 0
+            };
+
+            earthGroup.add(group);
+            state.markerMeshes.push(hitBox);
+
+            // Animate in
+            group.scale.set(0, 0, 0);
+            gsap.to(group.scale, { x: 1, y: 1, z: 1, duration: 0.8, ease: 'elastic.out(1, 0.5)' });
+
+            return group;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           SCAR MANAGEMENT
+           ═══════════════════════════════════════════════════ */
+        function updateMarkerBadge(locationName) {
+            const marker = state.markerMeshes.find(m => m.userData.id === locationName);
+            if (marker && marker.parent && marker.parent.userData.labelDiv) {
+                const count = state.scars.filter(s => s.locationName === locationName).length;
+                const labelDiv = marker.parent.userData.labelDiv;
+                if (count > 1) {
+                    const icon = labelDiv.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-folder';
+                    let badge = labelDiv.querySelector('.badge-counter');
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = 'badge-counter';
+                        labelDiv.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                }
+            }
+        }
+
+        function addScar(data, opts = {}) {
+            const id = opts.id || Date.now().toString();
+            const locationName = data.locationName || 'Unknown';
+            let position;
+
+            if (data.lat !== undefined && data.lon !== undefined) {
+                position = latLonToVector3(data.lat, data.lon, state.earthRadius);
+            } else if (data.position instanceof THREE.Vector3) {
+                position = data.position.clone();
+            } else if (data.position) {
+                position = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
+            } else {
+                position = latLonToVector3(0, 0, state.earthRadius);
+            }
+
+            const scar = {
+                id,
+                position: { x: position.x, y: position.y, z: position.z },
+                lat: data.lat,
+                lon: data.lon,
+                mistake: data.mistake || '',
+                lesson: data.lesson || '',
+                category: data.category ?? 6,
+                severity: data.severity ?? 0,
+                photos: data.photos || [],
+                txHash: data.txHash || '',
+                locationName: locationName,
+                savedAt: data.savedAt || Date.now(),
+                onChainId: data.onChainId || null,
+                ipfsCID: data.ipfsCID || null,
+                contentHash: data.contentHash || null,
+                savedMeCount: data.savedMeCount || 0,
+                flagCount: data.flagCount || 0,
+                author: data.author || state.wallet.address || null,
+                stakeAmount: data.stakeAmount || CONFIG.MIN_STAKE,
+            };
+            state.scars.push(scar);
+
+            // Label: show category shorthand
+            const catLabel = CATEGORIES[scar.category] || 'Other';
+            const labelText = `${catLabel} · ${locationName}`;
+
+            // Grouping: check if a marker for this location exists
+            const existingMarker = state.markerMeshes.find(m => m.userData.id === locationName);
+
+            if (existingMarker) {
+                updateMarkerBadge(locationName);
+            } else {
+                position.x += (Math.random() - 0.5) * 0.05;
+                position.y += (Math.random() - 0.5) * 0.05;
+                position.z += (Math.random() - 0.5) * 0.05;
+                position.normalize().multiplyScalar(state.earthRadius);
+                createMarkerMesh(position, locationName, labelText, scar.category);
+            }
+
+            if (opts.persist !== false) {
+                dbPut(scar).catch(e => console.warn('Persist failed:', e));
+            }
+
+            return scar;
+        }
+
+        async function loadAllScars() {
+            // 1. Load from local DB
+            let saved = [];
+            try { saved = await dbGetAll(); } catch (e) { console.warn('Local load failed:', e); }
+            if (saved && saved.length > 0) {
+                saved.forEach(s => addScar(s, { id: s.id, persist: false }));
+            }
+
+            // 2. Load from chain (global feed)
+            if (CONFIG.PROGRAM_ID !== '11111111111111111111111111111111') {
+                try {
+                    loadingEl.classList.remove('hidden');
+                    const chainScars = await loadGlobalScarsFromChain();
+
+                    for (const cs of chainScars) {
+                        // Skip if already loaded locally
+                        if (state.scars.find(s => s.onChainId === cs.onChainId)) continue;
+
+                        // Fetch metadata from IPFS if available
+                        let metadata = {};
+                        if (cs.ipfsCID) {
+                            try { metadata = await fetchFromIPFS(cs.ipfsCID); } catch {}
+                        }
+
+                        const locationName = metadata.locationName || await fetchLocationName(cs.lat, cs.lon);
+
+                        addScar({
+                            ...cs,
+                            mistake: metadata.mistake || '',
+                            lesson: metadata.lesson || '',
+                            photos: metadata.photos || [],
+                            txHash: metadata.txHash || '',
+                            locationName,
+                        }, { id: cs.id, persist: true });
+                    }
+
+                    // Update stats
+                    document.getElementById('stat-total-scars').textContent = state.scars.length;
+                    loadingEl.classList.add('hidden');
+                } catch (e) {
+                    console.warn('Chain load failed:', e);
+                    loadingEl.classList.add('hidden');
+                }
+            }
+
+            document.getElementById('stat-total-scars').textContent = state.scars.length;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           UI: PIN A SCAR PANEL
+           ═══════════════════════════════════════════════════ */
+        const panelAdd = document.getElementById('panel-add');
+        const mistakeInput = document.getElementById('mistake-input');
+        const mistakeCount = document.getElementById('mistake-count');
+        const lessonInput = document.getElementById('lesson-input');
+        const lessonCount = document.getElementById('lesson-count');
+        const photoInput = document.getElementById('photo-input');
+        const photoGrid = document.getElementById('photo-grid');
+        const uploadArea = document.getElementById('upload-area');
+        const txInput = document.getElementById('tx-input');
+        const btnPostScar = document.getElementById('btn-post-scar');
+        const addLocationText = document.getElementById('add-location-text');
+
+        let currentTempLocationName = 'Unknown';
+
+        // Category Dropdown
+        const categorySelected = document.getElementById('category-selected');
+        const categoryOptions = document.getElementById('category-options');
+        const categorySelectedText = document.getElementById('category-selected-text');
+        
+        categorySelected.addEventListener('click', () => {
+            categoryOptions.classList.toggle('hidden');
+            categorySelected.classList.toggle('open');
+        });
+
+        document.querySelectorAll('#category-options .dropdown-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('#category-options .dropdown-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                categorySelectedText.innerHTML = opt.innerHTML;
+                state.selectedCategory = parseInt(opt.dataset.cat);
+                categoryOptions.classList.add('hidden');
+                categorySelected.classList.remove('open');
+                checkPostBtn();
+            });
+        });
+
+        // Severity Dropdown
+        const severitySelected = document.getElementById('severity-selected');
+        const severityOptions = document.getElementById('severity-options');
+        const severitySelectedText = document.getElementById('severity-selected-text');
+        
+        severitySelected.addEventListener('click', () => {
+            severityOptions.classList.toggle('hidden');
+            severitySelected.classList.toggle('open');
+        });
+
+        document.querySelectorAll('#severity-options .dropdown-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('#severity-options .dropdown-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                severitySelectedText.innerHTML = opt.innerHTML;
+                state.selectedSeverity = parseInt(opt.dataset.sev);
+                severityOptions.classList.add('hidden');
+                severitySelected.classList.remove('open');
+                checkPostBtn();
+            });
+        });
+
+        // Character counters
+        mistakeInput.addEventListener('input', () => {
+            mistakeCount.textContent = mistakeInput.value.length;
+            const counter = mistakeCount.parentElement;
+            counter.classList.toggle('near-limit', mistakeInput.value.length > 420);
+            counter.classList.toggle('at-limit', mistakeInput.value.length >= 500);
+            checkPostBtn();
+        });
+
+        lessonInput.addEventListener('input', () => {
+            lessonCount.textContent = lessonInput.value.length;
+            const counter = lessonCount.parentElement;
+            counter.classList.toggle('near-limit', lessonInput.value.length > 250);
+            counter.classList.toggle('at-limit', lessonInput.value.length >= 300);
+            checkPostBtn();
+        });
+
+        function checkPostBtn() {
+            const hasMistake = mistakeInput.value.trim().length > 0;
+            const hasCategory = state.selectedCategory >= 0;
+            const hasSeverity = state.selectedSeverity >= 0;
+            const hasLesson = lessonInput.value.trim().length > 0;
+            btnPostScar.disabled = !(hasMistake && hasCategory && hasSeverity && hasLesson);
+        }
+
+        // Photo upload
+        photoInput.addEventListener('change', handlePhotoSelect);
+
+        function handlePhotoSelect(e) {
+            const files = Array.from(e.target.files || []);
+            const remaining = CONFIG.MAX_PHOTOS - state.uploadedPhotos.length;
+            if (remaining <= 0) { showToast('Maximum 5 photos reached', 'error'); return; }
+            const toAdd = files.slice(0, remaining);
+            toAdd.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = async ev => {
+                    const resized = await resizeImage(ev.target.result);
+                    state.uploadedPhotos.push({ dataUrl: resized, name: file.name });
+                    renderPhotoGrid();
+                };
+                reader.readAsDataURL(file);
+            });
+            if (files.length > remaining) {
+                showToast(`Only ${remaining} more photo${remaining > 1 ? 's' : ''} allowed`, 'info');
+            }
+        }
+
+        // Drag & drop
+        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const dt = new DataTransfer();
+            Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => dt.items.add(f));
+            photoInput.files = dt.files;
+            photoInput.dispatchEvent(new Event('change'));
+        });
+
+        function renderPhotoGrid() {
+            if (state.uploadedPhotos.length === 0) {
+                photoGrid.classList.add('hidden');
+                uploadArea.classList.remove('hidden');
+                return;
+            }
+            photoGrid.classList.remove('hidden');
+            uploadArea.classList.add('hidden'); // Always hide the big upload area if photos exist!
+
+            photoGrid.innerHTML = '';
+            state.uploadedPhotos.forEach((p, i) => {
+                const div = document.createElement('div');
+                div.className = 'photo-grid-item';
+                div.innerHTML = `<img src="${p.dataUrl}" alt="Photo ${i+1}"><button class="photo-remove always-visible" data-idx="${i}"><i class="fa-solid fa-xmark"></i></button>`;
+                div.querySelector('.photo-remove').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    state.uploadedPhotos.splice(i, 1);
+                    renderPhotoGrid();
+                });
+                photoGrid.appendChild(div);
+            });
+
+            // Inline "+" button if under limit!
+            if (state.uploadedPhotos.length < CONFIG.MAX_PHOTOS) {
+                const addBtn = document.createElement('label');
+                addBtn.className = 'photo-grid-item add-more-photos';
+                addBtn.innerHTML = `<i class="fa-solid fa-plus"></i><input type="file" accept="image/*" multiple>`;
+                const inlineInput = addBtn.querySelector('input');
+                inlineInput.addEventListener('change', handlePhotoSelect);
+                photoGrid.appendChild(addBtn);
+            }
+        }
+
+        async function openAddModal(predefinedName = null) {
+            // Reset
+            mistakeInput.value = '';
+            mistakeCount.textContent = '0';
+            lessonInput.value = '';
+            lessonCount.textContent = '0';
+            txInput.value = '';
+            photoInput.value = '';
+            state.uploadedPhotos = [];
+            photoGrid.innerHTML = '';
+            photoGrid.classList.add('hidden');
+            uploadArea.classList.remove('hidden');
+            state.selectedCategory = -1;
+            state.selectedSeverity = -1;
+            // Reset dropdowns
+            categorySelectedText.innerHTML = 'Select a category...';
+            severitySelectedText.innerHTML = 'Select severity...';
+            document.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('active'));
+            categoryOptions.classList.add('hidden');
+            severityOptions.classList.add('hidden');
+            categorySelected.classList.remove('open');
+            severitySelected.classList.remove('open');
+            btnPostScar.disabled = true;
+            
+            // Reset wizard steps
+            document.getElementById('pin-step-1').classList.remove('hidden');
+            document.getElementById('pin-step-2').classList.add('hidden');
+            
+            currentTempLocationName = predefinedName || 'Unknown';
+
+            if (predefinedName) {
+                addLocationText.innerHTML = `${currentTempLocationName}`;
+            } else {
+                addLocationText.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Scanning...';
+            }
+
+            showPanel(panelAdd);
+
+            if (state.currentClickPosition && !predefinedName) {
+                const { lat, lon } = vector3ToLatLon(state.currentClickPosition);
+                currentTempLocationName = await fetchLocationName(lat, lon);
+                addLocationText.textContent = currentTempLocationName;
+            }
+        }
+
+        document.getElementById('btn-close-add').addEventListener('click', () => hidePanel(panelAdd));
+
+        // Next step button
+        document.getElementById('btn-next-step').addEventListener('click', () => {
+            document.getElementById('pin-step-1').classList.add('hidden');
+            document.getElementById('pin-step-2').classList.remove('hidden');
+        });
+
+        // Prev step button
+        document.getElementById('btn-prev-step').addEventListener('click', () => {
+            document.getElementById('pin-step-2').classList.add('hidden');
+            document.getElementById('pin-step-1').classList.remove('hidden');
+        });
+
+        // Post scar
+        btnPostScar.addEventListener('click', async () => {
+            if (!state.currentClickPosition) return;
+
+            const { lat, lon } = vector3ToLatLon(state.currentClickPosition);
+            const timestamp = Date.now();
+            const contentHashValue = await hashContent(
+                mistakeInput.value.trim(),
+                lessonInput.value.trim(),
+                state.selectedCategory,
+                timestamp
+            );
+
+            const scarData = {
+                position: state.currentClickPosition.clone(),
+                lat, lon,
+                mistake: mistakeInput.value.trim(),
+                lesson: lessonInput.value.trim(),
+                category: state.selectedCategory,
+                severity: state.selectedSeverity,
+                photos: state.uploadedPhotos.map(p => p.dataUrl),
+                txHash: txInput.value.trim(),
+                locationName: currentTempLocationName,
+                savedAt: timestamp,
+                contentHash: contentHashValue,
+                author: state.wallet.address,
+                stakeAmount: CONFIG.MIN_STAKE,
+            };
+
+            // Close panel immediately (optimistic UI)
+            hidePanel(panelAdd);
+            showToast('Burning your scar into the globe...', 'info');
+
+            // Save locally first
+            const scar = addScar(scarData);
+            document.getElementById('stat-total-scars').textContent = state.scars.length;
+
+            // Background: IPFS + blockchain
+            if (state.wallet.instance && CONFIG.PROGRAM_ID !== '11111111111111111111111111111111') {
+                try {
+                    // Upload metadata to IPFS (including photos)
+                    const ipfsPayload = {
+                        mistake: scarData.mistake,
+                        lesson: scarData.lesson,
+                        category: scarData.category,
+                        severity: scarData.severity,
+                        photos: scarData.photos,
+                        txHash: scarData.txHash,
+                        locationName: scarData.locationName,
+                        lat: scarData.lat,
+                        lon: scarData.lon,
+                        savedAt: scarData.savedAt,
+                    };
+
+                    const cid = await uploadJSONToIPFS(ipfsPayload);
+                    scar.ipfsCID = cid;
+
+                    const onChainId = await postScarOnChain(
+                        contentHashValue, cid,
+                        scarData.category, scarData.severity,
+                        lat, lon
+                    );
+                    scar.onChainId = onChainId;
+
+                    await dbPut(scar);
+                    await refreshBalance();
+                    showToast('Scar burned on-chain! 🔥', 'success');
+                } catch (e) {
+                    console.error('On-chain post failed:', e);
+                    showToast('Saved locally. On-chain sync failed.', 'error');
+                }
+            } else {
+                showToast('Scar pinned locally!', 'success');
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════
+           UI: VIEW SCAR PANEL (Premium Card)
+           ═══════════════════════════════════════════════════ */
+        const panelView = document.getElementById('panel-view');
+
+        const modalCarouselNav = document.getElementById('modal-carousel-nav');
+        const btnCarouselPrev = document.getElementById('btn-carousel-prev');
+        const btnCarouselNext = document.getElementById('btn-carousel-next');
+        const modalCarouselIndicator = document.getElementById('modal-carousel-indicator');
+
+        function renderCurrentScar() {
+            const scar = state.viewingScars[state.currentViewIndex];
+            if (!scar) return;
+
+            state.selectedScarId = scar.id;
+            
+            const panelContent = document.getElementById('view-panel-content');
+            
+            // Set icons based on category
+            const icons = ['fa-bolt', 'fa-arrow-trend-down', 'fa-fire', 'fa-skull', 'fa-wallet', 'fa-gavel', 'fa-ghost'];
+            document.getElementById('view-cat-icon').className = `fa-solid ${icons[scar.category] || 'fa-bolt'}`;
+            
+            // Location
+            document.getElementById('view-location').textContent = scar.locationName;
+            
+            // Build Circular Gallery
+            const galleryTrack = document.getElementById('gallery-track');
+            if (galleryTrack) {
+                galleryTrack.innerHTML = ''; // Clear old items
+                state.gallery.items = [];
+                state.gallery.targetScroll = 0;
+                state.gallery.currentScroll = 0;
+
+                const galleryData = [];
+                if (scar.photos && scar.photos.length > 0) {
+                    scar.photos.forEach(photoUrl => galleryData.push({ type: 'photo', content: photoUrl }));
+                }
+                if (scar.mistake && scar.mistake !== '—') {
+                    galleryData.push({ type: 'note', content: scar.mistake });
+                }
+                if (scar.lesson && scar.lesson !== '—') {
+                    galleryData.push({ type: 'note', content: scar.lesson });
+                }
+
+                if (galleryData.length > 0) {
+                    galleryData.forEach((item) => {
+                        const div = document.createElement('div');
+                        div.className = 'gallery-item';
+                        
+                        if (item.type === 'photo') {
+                            const img = document.createElement('img');
+                            img.src = item.content;
+                            if(item.content.startsWith('http')) img.crossOrigin = "anonymous";
+                            div.appendChild(img);
+                        } else if (item.type === 'note') {
+                            const noteDiv = document.createElement('div');
+                            noteDiv.className = 'gallery-note panel-content'; // use custom scrollbar from panel-content
+                            noteDiv.style.flex = '1';
+                            noteDiv.innerHTML = `<div style="width:100%;"><i class="fa-solid fa-quote-left" style="color:var(--primary-light); opacity:0.6; font-size:1.8rem; display:block; margin-bottom:12px;"></i>${item.content}</div>`;
+                            div.appendChild(noteDiv);
+                        }
+                        
+                        galleryTrack.appendChild(div);
+                        state.gallery.items.push(div);
+                    });
+                } else {
+                    galleryTrack.innerHTML = '<p style="text-align:center; color:var(--text-dim); position:absolute; top:50%; width:100%; transform:translateY(-50%);">No content available.</p>';
+                }
+            }
+
+            // Set dynamic border for modal based on severity
+            const panelView = document.getElementById('panel-view');
+            panelView.classList.remove('sev-0-border', 'sev-1-border', 'sev-2-border', 'sev-3-border');
+            panelView.classList.add(`sev-${scar.severity}-border`);
+            
+            // Stats (Category and TX)
+            const categories = ['FOMO', 'Rug Pull', 'High Leverage', 'Bad Timing', 'Phishing', 'Gas Error', 'Other'];
+            const viewCat = document.getElementById('view-category');
+            if (viewCat) viewCat.textContent = categories[scar.category] || 'Unknown';
+            
+            const txBox = document.getElementById('view-tx-box');
+            if (txBox) {
+                if (scar.txHash && scar.txHash.length > 5) {
+                    txBox.classList.remove('hidden');
+                    txBox.dataset.hash = scar.txHash;
+                } else {
+                    txBox.classList.add('hidden');
+                }
+            }
+            
+            // Author
+            document.getElementById('view-author').textContent = shortAddr(scar.author);
+
+            // Reset button states
+            const btnSavedMe = document.getElementById('btn-saved-me');
+            btnSavedMe.classList.remove('voted', 'just-voted', 'hidden');
+            btnSavedMe.querySelector('span').textContent = 'This saved me';
+
+            const btnReport = document.getElementById('btn-report');
+            btnReport.classList.remove('flagged', 'hidden');
+            btnReport.querySelector('span').textContent = 'Report';
+
+            const btnDelete = document.getElementById('btn-delete');
+            btnDelete.classList.add('hidden');
+
+            // Handle author logic: hide voting/reporting and show delete if it's their own scar OR a local offline scar
+            const isAuthor = state.wallet.address && scar.author === state.wallet.address && scar.author !== '11111111111111111111111111111111';
+            const isLocal = !scar.txHash;
+            
+            if (isAuthor || isLocal) {
+                btnSavedMe.classList.add('hidden');
+                btnReport.classList.add('hidden');
+                btnDelete.classList.remove('hidden');
+            }
+
+            // Carousel navigation
+            if (state.viewingScars.length > 1) {
+                modalCarouselNav.classList.remove('hidden');
+                modalCarouselIndicator.textContent = `${state.currentViewIndex + 1} of ${state.viewingScars.length}`;
+                btnCarouselPrev.disabled = state.currentViewIndex === 0;
+                btnCarouselNext.disabled = state.currentViewIndex === state.viewingScars.length - 1;
+            } else {
+                modalCarouselNav.classList.add('hidden');
+            }
+        }
+
+        function openViewModal(locationName) {
+            state.viewingScars = state.scars
+                .filter(s => s.locationName === locationName)
+                .sort((a, b) => b.savedAt - a.savedAt);
+
+            if (state.viewingScars.length === 0) {
+                const scar = state.scars.find(s => s.id === locationName);
+                if (!scar) return;
+                state.viewingScars = [scar];
+            }
+
+            state.currentViewIndex = 0;
+            renderCurrentScar();
+            showPanel(panelView);
+        }
+
+        // Circular Gallery Interaction
+        const circularGallery = document.getElementById('circular-gallery');
+        if (circularGallery) {
+            circularGallery.addEventListener('pointerdown', (e) => {
+                state.gallery.isDragging = true;
+                state.gallery.startX = e.clientX;
+                state.gallery.startScroll = state.gallery.targetScroll;
+                circularGallery.setPointerCapture(e.pointerId);
+            });
+            
+            circularGallery.addEventListener('pointermove', (e) => {
+                if (!state.gallery.isDragging) return;
+                const deltaX = e.clientX - state.gallery.startX;
+                state.gallery.targetScroll = state.gallery.startScroll - deltaX * 1.5;
+            });
+            
+            circularGallery.addEventListener('pointerup', (e) => {
+                state.gallery.isDragging = false;
+                circularGallery.releasePointerCapture(e.pointerId);
+            });
+        }
+
+        btnCarouselPrev.addEventListener('click', () => {
+            if (state.currentViewIndex > 0) {
+                state.currentViewIndex--;
+                panelView.style.opacity = '0.5';
+                setTimeout(() => {
+                    renderCurrentScar();
+                    panelView.style.opacity = '1';
+                }, 150);
+            }
+        });
+
+        btnCarouselNext.addEventListener('click', () => {
+            if (state.currentViewIndex < state.viewingScars.length - 1) {
+                state.currentViewIndex++;
+                panelView.style.opacity = '0.5';
+                setTimeout(() => {
+                    renderCurrentScar();
+                    panelView.style.opacity = '1';
+                }, 150);
+            }
+        });
+
+        document.getElementById('btn-close-view').addEventListener('click', () => hidePanel(panelView));
+
+        /* ═══════════════════════════════════════════════════
+           UI: "THIS SAVED ME" & REPORT
+           ═══════════════════════════════════════════════════ */
+        document.getElementById('btn-saved-me').addEventListener('click', async () => {
+            const scar = state.viewingScars[state.currentViewIndex];
+            if (!scar) return;
+            const btn = document.getElementById('btn-saved-me');
+            if (btn.classList.contains('voted')) return;
+
+            if (!state.wallet.instance) {
+                showToast('Set up your wallet first to vote', 'error');
+                return;
+            }
+
+            if (scar.author === state.wallet.address) {
+                showToast("Can't vote on your own scar", 'info');
+                return;
+            }
+
+            try {
+                btn.innerHTML = '<div class="spinner"></div> Voting...';
+
+                if (scar.onChainId && CONFIG.PROGRAM_ID !== '11111111111111111111111111111111') {
+                    await savedMeOnChain(scar.onChainId);
+                }
+
+                scar.savedMeCount = (scar.savedMeCount || 0) + 1;
+                await dbPut(scar);
+
+                btn.classList.add('voted', 'just-voted');
+                btn.innerHTML = '<i class="fa-solid fa-heart"></i><span>Saved!</span><span class="saved-me-count" style="margin-left:6px; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:12px; font-size:0.8rem;">' + scar.savedMeCount + '</span>';
+
+                showToast('Vote recorded! ❤️', 'success');
+            } catch (e) {
+                console.error('Vote failed:', e);
+                showToast('Vote failed: ' + (e.reason || e.message || 'unknown'), 'error');
+                btn.innerHTML = '<i class="fa-solid fa-heart"></i><span>This saved me</span>';
+            }
+        });
+
+        document.getElementById('btn-report').addEventListener('click', async () => {
+            const scar = state.viewingScars[state.currentViewIndex];
+            if (!scar) return;
+            const btn = document.getElementById('btn-report');
+            if (btn.classList.contains('flagged')) return;
+
+            if (!state.wallet.instance) {
+                showToast('Set up your wallet first to report', 'error');
+                return;
+            }
+
+            try {
+                btn.innerHTML = '<div class="spinner"></div>';
+
+                if (scar.onChainId && CONFIG.PROGRAM_ID !== '11111111111111111111111111111111') {
+                    await flagScarOnChain(scar.onChainId);
+                }
+
+                scar.flagCount = (scar.flagCount || 0) + 1;
+                await dbPut(scar);
+
+                btn.classList.add('flagged');
+                btn.innerHTML = '<i class="fa-solid fa-flag"></i><span>Reported</span>';
+
+                showToast('Report submitted', 'info');
+            } catch (e) {
+                console.error('Report failed:', e);
+                showToast('Report failed', 'error');
+                btn.innerHTML = '<i class="fa-solid fa-flag"></i><span>Report</span>';
+            }
+        });
+
+        document.getElementById('btn-delete').addEventListener('click', async () => {
+            const scar = state.viewingScars[state.currentViewIndex];
+            if (!scar) return;
+
+            if (confirm("Delete this scar?\n\n(Note: If this scar is already on the blockchain, only the local copy will be deleted. Blockchain data is immutable.)")) {
+                try {
+                    await dbDelete(scar.id);
+                    state.scars = state.scars.filter(s => s.id !== scar.id);
+                    document.getElementById('stat-total-scars').textContent = state.scars.length;
+                    
+                    hidePanel(document.getElementById('panel-view'));
+                    
+                    // Remove or update the 3D marker on the map
+                    const remainingScarsAtLocation = state.scars.filter(s => s.locationName === scar.locationName);
+                    if (remainingScarsAtLocation.length === 0) {
+                        // It was the last scar here, completely remove the marker
+                        const marker = state.markerMeshes.find(m => m.userData.id === scar.locationName);
+                        if (marker && marker.parent) {
+                            if (marker.parent.userData.labelDiv) {
+                                marker.parent.userData.labelDiv.remove();
+                            }
+                            earthGroup.remove(marker.parent);
+                            state.markerMeshes = state.markerMeshes.filter(m => m.userData.id !== scar.locationName);
+                        }
+                    } else {
+                        // Other scars still exist here, just update the number badge
+                        updateMarkerBadge(scar.locationName);
+                    }
+
+                    showToast('Scar deleted successfully', 'success');
+                } catch(e) {
+                    console.error('Delete failed:', e);
+                    showToast('Failed to delete scar', 'error');
+                }
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════
+           UI: FULLSCREEN IMAGE VIEWER
+           ═══════════════════════════════════════════════════ */
+        const fullscreenViewer = document.getElementById('fullscreen-viewer');
+        const fullscreenImg = document.getElementById('fullscreen-image');
+        const fullscreenCounter = document.getElementById('fullscreen-counter');
+        const fullscreenContainer = document.getElementById('fullscreen-image-container');
+
+        function openFullscreenViewer(index) {
+            if (state.fullscreenPhotos.length === 0) return;
+            state.fullscreenIndex = index;
+            state.fullscreenZoom = 1;
+            updateFullscreenImage();
+            fullscreenViewer.classList.remove('hidden');
+            requestAnimationFrame(() => fullscreenViewer.classList.add('visible'));
+        }
+
+        function closeFullscreenViewer() {
+            fullscreenViewer.classList.remove('visible');
+            setTimeout(() => fullscreenViewer.classList.add('hidden'), 250);
+        }
+
+        function updateFullscreenImage() {
+            fullscreenImg.src = state.fullscreenPhotos[state.fullscreenIndex];
+            fullscreenImg.style.transform = 'scale(1)';
+            state.fullscreenZoom = 1;
+            fullscreenCounter.textContent = `${state.fullscreenIndex + 1}/${state.fullscreenPhotos.length}`;
+        }
+
+        document.getElementById('btn-close-fullscreen').addEventListener('click', closeFullscreenViewer);
+        document.getElementById('btn-prev-image').addEventListener('click', () => {
+            state.fullscreenIndex = (state.fullscreenIndex - 1 + state.fullscreenPhotos.length) % state.fullscreenPhotos.length;
+            updateFullscreenImage();
+        });
+        document.getElementById('btn-next-image').addEventListener('click', () => {
+            state.fullscreenIndex = (state.fullscreenIndex + 1) % state.fullscreenPhotos.length;
+            updateFullscreenImage();
+        });
+
+        fullscreenContainer.addEventListener('wheel', e => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            state.fullscreenZoom = Math.min(Math.max(state.fullscreenZoom * delta, 0.5), 5);
+            fullscreenImg.style.transform = `scale(${state.fullscreenZoom})`;
+        });
+
+        document.addEventListener('keydown', e => {
+            if (fullscreenViewer.classList.contains('hidden')) return;
+            if (e.key === 'Escape') closeFullscreenViewer();
+            if (e.key === 'ArrowLeft') document.getElementById('btn-prev-image').click();
+            if (e.key === 'ArrowRight') document.getElementById('btn-next-image').click();
+        });
+
+        /* ═══════════════════════════════════════════════════
+           UI: SEARCH
+           ═══════════════════════════════════════════════════ */
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(state.searchDebounce);
+            const query = searchInput.value.trim();
+            if (!query) { searchResults.classList.add('hidden'); return; }
+            state.searchDebounce = setTimeout(() => performSearch(query), 300);
+        });
+
+        document.addEventListener('pointerdown', e => {
+            const sc = document.getElementById('search-container');
+            if (sc && !sc.contains(e.target)) searchResults.classList.add('hidden');
+        });
+
+        async function performSearch(query) {
+            searchResults.innerHTML = '<div class="search-loading"><div class="spinner"></div> Searching...</div>';
+            searchResults.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+                const data = await res.json();
+
+                searchResults.innerHTML = '';
+
+                if (!data.results || data.results.length === 0) {
+                    searchResults.innerHTML = '<div class="search-empty">No locations found</div>';
+                    return;
+                }
+
+                data.results.forEach(item => {
+                    const parts = [item.name, item.admin1, item.country].filter(Boolean);
+                    const name = [...new Set(parts)].join(', ');
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i><span class="truncate">${name}</span>`;
+                    div.addEventListener('click', () => {
+                        selectLocation(parseFloat(item.latitude), parseFloat(item.longitude), name);
+                        searchResults.classList.add('hidden');
+                        searchInput.value = '';
+                    });
+                    searchResults.appendChild(div);
+                });
+            } catch {
+                searchResults.innerHTML = '<div class="search-empty" style="color:var(--error);">Search failed. Try again.</div>';
+            }
+        }
+
+        function selectLocation(lat, lon, name) {
+            const pos = latLonToVector3(lat, lon, state.earthRadius);
+            const worldPos = earthGroup.localToWorld(pos.clone());
+            const dist = camera.position.distanceTo(controls.target);
+            const dir = worldPos.clone().sub(controls.target).normalize();
+            const targetCam = dir.multiplyScalar(dist).add(controls.target);
+
+            // Temporarily disable offset animation so the fly-to takes full priority if panels aren't open
+            gsap.to(camera.position, {
+                x: targetCam.x, y: targetCam.y, z: targetCam.z,
+                duration: 1.2, ease: 'power3.inOut',
+                onUpdate: () => controls.update(),
+                onComplete: () => {
+                    state.currentClickPosition = pos;
+                    openAddModal(name);
+                }
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════
+           UI: WALLET PANEL
+           ═══════════════════════════════════════════════════ */
+        const panelWallet = document.getElementById('panel-wallet');
+        const panelWalletSetup = document.getElementById('panel-wallet-setup');
+        const panelWalletUnlock = document.getElementById('panel-wallet-unlock');
+        const walletContent = document.getElementById('wallet-content');
+
+        document.getElementById('btn-wallet').addEventListener('click', async () => {
+            if (state.wallet.isLocked) {
+                if (panelWalletSetup.classList.contains('visible')) {
+                    hidePanel(panelWalletSetup);
+                    return;
+                }
+                if (panelWalletUnlock.classList.contains('visible')) {
+                    hidePanel(panelWalletUnlock);
+                    return;
+                }
+
+                const exists = await window.scarsAPI.walletExists();
+                if (exists) {
+                    showPanel(panelWalletUnlock);
+                } else {
+                    showPanel(panelWalletSetup);
+                }
+            } else {
+                if (panelWallet.classList.contains('visible')) {
+                    hidePanel(panelWallet);
+                } else {
+                    showPanel(panelWallet);
+                    updateWalletUI();
+                    refreshBalance();
+                }
+            }
+        });
+
+        document.getElementById('btn-close-wallet').addEventListener('click', () => hidePanel(panelWallet));
+        const btnCloseWalletSetup = document.getElementById('btn-close-wallet-setup');
+        if (btnCloseWalletSetup) btnCloseWalletSetup.addEventListener('click', () => hidePanel(panelWalletSetup));
+        const btnCloseWalletUnlock = document.getElementById('btn-close-wallet-unlock');
+        if (btnCloseWalletUnlock) btnCloseWalletUnlock.addEventListener('click', () => hidePanel(panelWalletUnlock));
+
+        function updateWalletUI() {
+            if (!state.wallet.address) return;
+
+            const addr = state.wallet.address;
+            const shortAddress = `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+            const bal = parseFloat(state.wallet.balance).toFixed(4);
+
+            walletContent.innerHTML = `
+                <div class="wallet-balance-display">
+                    <div class="wallet-balance-amount">${bal}</div>
+                    <div class="wallet-balance-label">SOL Balance</div>
+                </div>
+                <div class="wallet-address-section">
+                    <div class="wallet-address-label">Your Address</div>
+                    <div class="wallet-address-value">
+                        <span>${shortAddress}</span>
+                        <button class="btn-copy" title="Copy address" onclick="navigator.clipboard.writeText('${addr}');document.querySelector('.btn-copy i').className='fa-solid fa-check';setTimeout(()=>document.querySelector('.btn-copy i').className='fa-solid fa-copy',1500);">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="wallet-section-title">Deposit SOL</div>
+                <p style="font-size:.78rem;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
+                    Send SOL to your address above from the <a href="https://faucet.solana.com/" target="_blank" style="color:var(--primary-light)">Solana Devnet Faucet</a> or another wallet.
+                </p>
+                <div class="wallet-section-title">Network</div>
+                <div class="wallet-info-row"><span>Cluster</span><span>Solana Devnet</span></div>
+                <div class="wallet-info-row"><span>Currency</span><span>SOL</span></div>
+                <div class="wallet-info-row"><span>Stake per post</span><span>${CONFIG.MIN_STAKE} SOL</span></div>
+                <button class="btn-ghost" style="margin-top:20px;" onclick="refreshBalance().then(()=>showToast('Balance refreshed','success'));">
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Balance
+                </button>
+            `;
+
+            const preview = document.getElementById('wallet-balance-preview');
+            preview.classList.remove('hidden');
+            preview.textContent = `${parseFloat(state.wallet.balance).toFixed(2)}`;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           UI: WALLET SETUP
+           ═══════════════════════════════════════════════════ */
+        const setupCreate = document.getElementById('wallet-setup-create');
+        const setupImport = document.getElementById('wallet-setup-import');
+        const setupLoading = document.getElementById('wallet-setup-loading');
+
+        document.getElementById('btn-show-import').addEventListener('click', () => {
+            setupCreate.classList.add('hidden');
+            setupImport.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-show-create').addEventListener('click', () => {
+            setupImport.classList.add('hidden');
+            setupCreate.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-create-wallet').addEventListener('click', async () => {
+            const pw = document.getElementById('wallet-password').value;
+            const pwc = document.getElementById('wallet-password-confirm').value;
+            if (pw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+            if (pw !== pwc) { showToast('Passwords do not match', 'error'); return; }
+
+            setupCreate.classList.add('hidden');
+            setupLoading.classList.remove('hidden');
+
+            try {
+                await createNewWallet(pw);
+                hidePanel(panelWalletSetup);
+                setupLoading.classList.add('hidden');
+                setupCreate.classList.remove('hidden');
+                showToast('Wallet created!', 'success');
+                updateWalletUI();
+            } catch (e) {
+                setupLoading.classList.add('hidden');
+                setupCreate.classList.remove('hidden');
+                showToast('Failed to create wallet: ' + e.message, 'error');
+            }
+        });
+
+        document.getElementById('btn-import-wallet').addEventListener('click', async () => {
+            const key = document.getElementById('wallet-import-key').value;
+            const pw = document.getElementById('wallet-import-password').value;
+            if (!key.trim()) { showToast('Enter a private key or seed phrase', 'error'); return; }
+            if (pw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+
+            setupImport.classList.add('hidden');
+            setupLoading.classList.remove('hidden');
+
+            try {
+                await importWallet(key, pw);
+                hidePanel(panelWalletSetup);
+                setupLoading.classList.add('hidden');
+                setupImport.classList.remove('hidden');
+                showToast('Wallet imported!', 'success');
+                updateWalletUI();
+            } catch (e) {
+                setupLoading.classList.add('hidden');
+                setupImport.classList.remove('hidden');
+                showToast('Import failed: ' + e.message, 'error');
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════
+           UI: WALLET UNLOCK
+           ═══════════════════════════════════════════════════ */
+        const unlockError = document.getElementById('unlock-error');
+
+        document.getElementById('btn-unlock-wallet').addEventListener('click', async () => {
+            const pw = document.getElementById('wallet-unlock-password').value;
+            if (!pw) return;
+
+            unlockError.classList.add('hidden');
+            document.getElementById('btn-unlock-wallet').innerHTML = '<div class="spinner"></div> Unlocking...';
+
+            try {
+                await unlockWallet(pw);
+                hidePanel(panelWalletUnlock);
+                showToast('Wallet unlocked!', 'success');
+                updateWalletUI();
+            } catch (e) {
+                unlockError.textContent = 'Wrong password. Try again.';
+                unlockError.classList.remove('hidden');
+            } finally {
+                document.getElementById('btn-unlock-wallet').innerHTML = '<i class="fa-solid fa-unlock"></i> Unlock';
+            }
+        });
+
+        document.getElementById('btn-skip-unlock').addEventListener('click', () => {
+            hidePanel(panelWalletUnlock);
+        });
+
+        document.getElementById('wallet-unlock-password').addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('btn-unlock-wallet').click();
+        });
+
+        /* ═══════════════════════════════════════════════════
+           WINDOW RESIZE
+           ═══════════════════════════════════════════════════ */
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+
+            // Update offset if a panel is currently open
+            if (state.activePanels.size > 0) {
+                state.cameraOffset.x = 232;
+                camera.setViewOffset(window.innerWidth, window.innerHeight, state.cameraOffset.x, 0, window.innerWidth, window.innerHeight);
+            }
+        });
+
+        /* ═══════════════════════════════════════════════════
+           ANIMATION LOOP
+           ═══════════════════════════════════════════════════ */
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            controls.update();
+
+            // Earth auto-rotation
+            if (!state.isDragging) {
+                earthGroup.rotation.y += 0.015 * delta;
+                if (state.cloudMesh) state.cloudMesh.rotation.y += 0.018 * delta;
+                starMesh.rotation.y -= 0.003 * delta;
+            }
+
+            earthGroup.updateMatrixWorld(true);
+
+            // Marker animations & HTML Label Projections
+            const visibleMarkers = [];
+            state.markerMeshes.forEach(hitBox => {
+                const group = hitBox.parent;
+                if (group && group.userData && group.userData.ropeMesh) {
+                    const worldPos = new THREE.Vector3();
+                    group.localToWorld(worldPos.copy(group.userData.targetEndPos));
+
+                    const dirToCamera = camera.position.clone().sub(worldPos).normalize();
+                    const earthCenter = masterGroup.localToWorld(new THREE.Vector3(0,0,0));
+                    const normal = worldPos.clone().sub(earthCenter).normalize();
+
+                    if (normal.dot(dirToCamera) >= -0.1) {
+                        group.visible = true;
+
+                        const screenPos = worldPos.clone().project(camera);
+                        const x = (screenPos.x * .5 + .5) * window.innerWidth;
+                        const y = (screenPos.y * -.5 + .5) * window.innerHeight;
+
+                        const distToCamera = camera.position.distanceTo(worldPos);
+                        const scale = Math.max(0.4, Math.min(1.2, 12 / distToCamera));
+
+                        if (group.userData.vx === undefined) group.userData.vx = 0;
+                        if (group.userData.vy === undefined) group.userData.vy = 0;
+
+                        visibleMarkers.push({
+                            group,
+                            originX: x,
+                            originY: y,
+                            targetX: group.userData.currentScreenX !== undefined ? group.userData.currentScreenX : x,
+                            targetY: group.userData.currentScreenY !== undefined ? group.userData.currentScreenY : y,
+                            z: screenPos.z,
+                            width: (group.userData.labelWidth || 160) * scale,
+                            height: (group.userData.labelHeight || 40) * scale,
+                            scale: scale
+                        });
+                    } else {
+                        group.visible = false;
+                        if (group.userData.labelDiv) {
+                            group.userData.labelDiv.style.opacity = '0';
+                            group.userData.labelDiv.style.pointerEvents = 'none';
+                        }
+                    }
+                }
+            });
+
+            // Fluid 2D Physics
+            const dt = Math.min(delta, 0.05);
+
+            for (let i = 0; i < visibleMarkers.length; i++) {
+                const m = visibleMarkers[i];
+                let forceX = 0;
+                let forceY = 0;
+
+                const springK = 8.0;
+                forceX += (m.originX - m.targetX) * springK;
+                forceY += (m.originY - m.targetY) * springK;
+
+                for (let j = 0; j < visibleMarkers.length; j++) {
+                    if (i === j) continue;
+                    const m2 = visibleMarkers[j];
+
+                    const dx = m.targetX - m2.targetX;
+                    const dy = m.targetY - m2.targetY;
+                    const distSq = dx*dx + dy*dy;
+                    const dist = Math.sqrt(distSq) || 1;
+
+                    const minDistX = (m.width + m2.width) / 2 + 15;
+                    const minDistY = (m.height + m2.height) / 2 + 15;
+
+                    if (Math.abs(dx) < minDistX && Math.abs(dy) < minDistY) {
+                        const overlapX = minDistX - Math.abs(dx);
+                        const overlapY = minDistY - Math.abs(dy);
+                        const pushForce = 5000.0;
+
+                        forceX += (dx / dist) * pushForce * (overlapX / minDistX);
+                        forceY += (dy / dist) * pushForce * (overlapY / minDistY);
+                    }
+                }
+
+                const damping = 0.85;
+                const mass = 1.0;
+
+                m.group.userData.vx = (m.group.userData.vx + (forceX / mass) * dt) * damping;
+                m.group.userData.vy = (m.group.userData.vy + (forceY / mass) * dt) * damping;
+            }
+
+            // Apply physics and update ropes
+            visibleMarkers.forEach(m => {
+                const group = m.group;
+                const off = group.userData.randomOffset;
+                const wSpeed = group.userData.windSpeed || 1.0;
+
+                if (group.userData.currentScreenX === undefined) {
+                    group.userData.currentScreenX = m.targetX;
+                    group.userData.currentScreenY = m.targetY;
+                }
+                group.userData.currentScreenX += group.userData.vx * dt;
+                group.userData.currentScreenY += group.userData.vy * dt;
+
+                m.targetX = group.userData.currentScreenX;
+                m.targetY = group.userData.currentScreenY;
+
+                const vec = new THREE.Vector3(
+                    (m.targetX / window.innerWidth) * 2 - 1,
+                    -(m.targetY / window.innerHeight) * 2 + 1,
+                    m.z
+                );
+                vec.unproject(camera);
+                const localTarget = group.worldToLocal(vec);
+
+                // Wind
+                const t = time * wSpeed;
+                const swayX = (Math.sin(t * 1.5 + off) + Math.cos(t * 0.8 + off) * 0.5) * 0.12;
+                const swayZ = (Math.cos(t * 1.2 + off) + Math.sin(t * 0.9 + off) * 0.4) * 0.12;
+                const swayY = Math.sin(t * 2.0 + off) * 0.04;
+
+                const current = group.userData.currentEndPos;
+                current.copy(localTarget);
+                current.x += swayX;
+                current.y += swayY;
+                current.z += swayZ;
+
+                // Update rope
+                if (group.userData.curve && group.userData.ropeMesh) {
+                    const curve = group.userData.curve;
+                    curve.v3.copy(current);
+                    curve.v1.set(swayX * 0.5, (group.userData.basePos.y + current.y) * 0.2, swayZ * 0.5);
+                    curve.v2.set(current.x * 0.8, (group.userData.basePos.y + current.y) * 0.6 - 0.2, current.z * 0.8);
+
+                    const oldGeo = group.userData.ropeMesh.geometry;
+                    group.userData.ropeMesh.geometry = new THREE.TubeGeometry(curve, 10, 0.005, 4, false);
+                    if (oldGeo) oldGeo.dispose();
+                }
+
+                // Update HTML Label
+                if (group.userData.labelDiv) {
+                    group.userData.labelDiv.style.opacity = '1';
+                    group.userData.labelDiv.style.pointerEvents = 'auto';
+
+                    const swayZRot = Math.cos(t * 1.2 + off);
+                    const rotation = swayZRot * 4;
+
+                    const swayedWorldPos = new THREE.Vector3();
+                    group.localToWorld(swayedWorldPos.copy(current));
+                    const swayedScreenPos = swayedWorldPos.clone().project(camera);
+                    const drawX = (swayedScreenPos.x * .5 + .5) * window.innerWidth;
+                    const drawY = (swayedScreenPos.y * -.5 + .5) * window.innerHeight;
+
+                    group.userData.labelDiv.style.transform = `translate3d(${drawX}px, ${drawY}px, 0) scale(${m.scale}) translate(-9px, -50%) rotate(${rotation}deg)`;
+                }
+            });
+
+            // Update 3D Circular Gallery
+            if (state.activePanels.has('panel-view') && state.gallery && state.gallery.items.length > 0) {
+                // Smooth interpolation
+                state.gallery.currentScroll += (state.gallery.targetScroll - state.gallery.currentScroll) * 0.08;
+                
+                state.gallery.items.forEach((item, i) => {
+                    const offset = (i * state.gallery.spacing) - state.gallery.currentScroll;
+                    const rotation = offset * -0.002;
+                    const z = Math.abs(offset) * -0.4;
+                    const opacity = Math.max(0, 1 - Math.abs(offset) / 600);
+                    
+                    item.style.transform = `translate3d(${offset}px, 0, ${z}px) rotateY(${rotation}rad)`;
+                    item.style.opacity = opacity;
+                    // Only click elements in front
+                    item.style.pointerEvents = Math.abs(offset) < 150 ? 'auto' : 'none';
+                });
+            }
+
+            // Render
+            composer.render();
+        }
+
+        animate();
+
+        /* ═══════════════════════════════════════════════════
+           INIT
+           ═══════════════════════════════════════════════════ */
+        async function init() {
+            try {
+                const exists = await window.scarsAPI.walletExists();
+                if (exists) {
+                    setTimeout(() => showPanel(panelWalletUnlock), 1500);
+                }
+            } catch (e) {
+                console.warn('Wallet check failed:', e);
+            }
+        }
+
+        init();
+
+    </script>
+</body>
+</html>

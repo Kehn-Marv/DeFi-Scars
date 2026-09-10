@@ -1,0 +1,19 @@
+[package]
+name = "defi-scars"
+version = "0.1.0"
+description = "DeFi Scars — A map of DeFi mistakes on Solana"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "defi_scars"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.30.1"
