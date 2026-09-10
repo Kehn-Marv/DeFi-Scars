@@ -26,34 +26,56 @@ Your entries are stored securely on Solana (the hash) and tied directly to your 
 - **Onchain Anchoring:** Connects to Solana Devnet to securely hash and anchor your lessons via an Anchor program.
 - **Stake-to-Post:** Requires 0.01 SOL to commit your scar to the globe permanently.
 
-## Getting Started
+## ⚙️ On-Chain Configuration
 
-### 1. Install & Run
+The repository comes pre-configured with default Solana Devnet parameters in `renderer/index.html`:
+
+| Parameter | Value | Description |
+|---|---|---|
+| **Network** | Solana Devnet (`api.devnet.solana.com`) | Target cluster for testing |
+| **Program ID** | `3EUbCw45m9gWr32QJ4muF4SiofFgggGzqTpWJEfKEhiV` | Deployed Anchor program address |
+| **Treasury Wallet** | `Cswy3cTVwwjWA7CSDjr2w3o7gRderZSNhpnCekmbjVCa` | Recipient address for scar stakes (0.01 SOL) |
+| **Stake Fee** | `0.01 SOL` (10,000,000 lamports) | Anti-spam stake forwarded to treasury |
+
+---
+
+## 🚀 Getting Started
+
+### Quick Start (Desktop App)
+You **do not** need Rust, Solana CLI, or Anchor installed to run and test the app. The desktop app runs directly with Electron:
+
 ```bash
-npm install     # install dependencies
-npm start       # launch the desktop app
+npm install     # Install dependencies
+npm start       # Launch the 3D globe desktop app
 ```
 
-### 2. Deploy the Smart Contract (Optional)
-If you want to run your own instance of the DefiScars program, you'll need the [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools) and [Anchor](https://www.anchor-lang.com/docs/installation) installed (Linux/macOS/WSL required):
+---
 
+### Smart Contract Deployment (Optional — For Developers)
+
+If you wish to compile and deploy your own instance of the program:
+
+#### Option A: Zero-Setup via Solana Playground (Recommended)
+1. Open [beta.solpg.io](https://beta.solpg.io/) in your browser.
+2. Create an Anchor project and paste [`programs/defi_scars/src/lib.rs`](programs/defi_scars/src/lib.rs).
+3. Click **Build & Deploy** to Devnet directly in the browser (no local toolchains required).
+
+#### Option B: Local Anchor CLI (Linux / macOS / WSL)
 ```bash
-# Build the Anchor program
+# 1. Build the Anchor program
 anchor build
 
-# Deploy to Solana Devnet
+# 2. Deploy to Solana Devnet
 anchor deploy --provider.cluster devnet
 ```
 
-After deploying, update `PROGRAM_ID` and `TREASURY_WALLET` inside `renderer/index.html` with your deployed program ID and treasury public key.
+#### One-Time Program Initialization
+Every freshly deployed Anchor program requires a one-time transaction to initialize the `global_state` PDA (`owner = treasury`, `next_id = 1`, `total_scars = 0`):
 
-Also update the `declare_id!()` in `programs/defi_scars/src/lib.rs` and `Anchor.toml` with the new program ID, then rebuild.
-
-### 3. Initialize the Program (One-time)
-After deployment, initialize the on-chain GlobalState account:
 ```bash
 npm run initialize
 ```
+*(Runs [`scripts/initialize.js`](scripts/initialize.js) which automatically derives the PDA and submits the initialization transaction to Devnet).*
 
 ## Project Structure
 ```
