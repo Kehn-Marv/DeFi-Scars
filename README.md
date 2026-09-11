@@ -63,9 +63,12 @@ The app interacts with an Anchor program on Solana Devnet:
 
 ### Deploying Your Own Contract
 If you want to compile and deploy your own copy of the smart contract:
-1. Open [beta.solpg.io](https://beta.solpg.io/) (Solana Playground in browser).
-2. Paste `programs/defi_scars/src/lib.rs` and click **Build & Deploy**.
-3. Run `npm run initialize` to set up the on-chain storage account.
+* **Option A (Browser - Zero Setup):** Open [beta.solpg.io](https://beta.solpg.io/), paste `programs/defi_scars/src/lib.rs`, and click Build & Deploy.
+* **Option B (Local Terminal):** Run `anchor build` followed by `anchor deploy --provider.cluster devnet`.
+* **Initialization:** Run `npm run initialize` to set up the on-chain storage account.
+
+### Testing on Devnet
+To pin scars on Devnet, you need free test SOL. You can request free Devnet SOL directly from [faucet.solana.com](https://faucet.solana.com/) or inside the app's wallet panel.
 
 ### Project Structure
 ```
